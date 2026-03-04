@@ -25,10 +25,14 @@ public class SysUserController {
     @ApiOperation("用户登录")
     @Log(module = "认证模块", action = "用户登录")
     @PostMapping("/login")
-    public Result<String> login(@RequestBody SysUser loginUser) {
-        // 返回生成的 JWT Token
+    public Result<Map<String, String>> login(@RequestBody SysUser loginUser) {
+        
         String token = userService.login(loginUser.getUsername(), loginUser.getPassword());
-        return Result.success(token);
+        Map<String, String> data = new java.util.HashMap<>();
+        data.put("token", token);
+        data.put("refreshToken", token); 
+
+        return Result.success(data);
     }
 
     @ApiOperation("获取当前登录用户信息")

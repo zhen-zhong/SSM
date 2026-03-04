@@ -40,6 +40,9 @@ export const request = createFlatRequest(
       const authStore = useAuthStore();
       const responseCode = String(response.data.code);
 
+      // 🌟 核心修改 1：提取后端的错误信息，优先使用 message，兼容 msg
+      const backendMessage = (response.data as any).message || response.data.msg;
+
       function handleLogout() {
         authStore.resetStore();
       }
@@ -48,7 +51,7 @@ export const request = createFlatRequest(
         handleLogout();
         window.removeEventListener('beforeunload', handleLogout);
 
-        request.state.errMsgStack = request.state.errMsgStack.filter(msg => msg !== response.data.msg);
+        request.state.errMsgStack = request.state.errMsgStack.filter(msg => msg !== backendMessage);
       }
 
       // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page
@@ -60,15 +63,15 @@ export const request = createFlatRequest(
 
       // when the backend response code is in `modalLogoutCodes`, it means the user will be logged out by displaying a modal
       const modalLogoutCodes = import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES?.split(',') || [];
-      if (modalLogoutCodes.includes(responseCode) && !request.state.errMsgStack?.includes(response.data.msg)) {
-        request.state.errMsgStack = [...(request.state.errMsgStack || []), response.data.msg];
+      if (modalLogoutCodes.includes(responseCode) && !request.state.errMsgStack?.includes(backendMessage)) {
+        request.state.errMsgStack = [...(request.state.errMsgStack || []), backendMessage];
 
         // prevent the user from refreshing the page
         window.addEventListener('beforeunload', handleLogout);
 
         window.$dialog?.error({
           title: $t('common.error'),
-          content: response.data.msg,
+          content: backendMessage, // 🌟 使用咱们后端的提示
           positiveText: $t('common.confirm'),
           maskClosable: false,
           closeOnEsc: false,
@@ -106,7 +109,7 @@ export const request = createFlatRequest(
 
       // get backend error message and code
       if (error.code === BACKEND_ERROR_CODE) {
-        message = error.response?.data?.msg || message;
+        message = (error.response?.data as any)?.message || error.response?.data?.msg || message;
         backendErrorCode = String(error.response?.data?.code || '');
       }
 
@@ -161,7 +164,7 @@ export const demoRequest = createRequest(
 
       // show backend error message
       if (error.code === BACKEND_ERROR_CODE) {
-        message = error.response?.data?.message || message;
+        message = (error.response?.data as any)?.message || error.response?.data?.message || message;
       }
 
       window.$message?.error(message);

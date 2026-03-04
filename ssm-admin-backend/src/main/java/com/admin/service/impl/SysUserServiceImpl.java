@@ -1,13 +1,17 @@
 package com.admin.service.impl;
 
 import com.admin.entity.SysUser;
+import com.admin.mapper.SysRoleMapper;
 import com.admin.mapper.SysUserMapper;
+import com.admin.mapper.SysUserRoleMapper;
 import com.admin.service.SysUserService;
 import com.admin.utils.JwtUtils;
+import com.admin.vo.UserInfoVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.admin.mapper.SysUserRoleMapper;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -18,6 +22,10 @@ public class SysUserServiceImpl implements SysUserService {
 
     @Autowired
     private SysUserRoleMapper userRoleMapper;
+
+    // 🌟 注入刚刚创建的角色查询 Mapper
+    @Autowired
+    private SysRoleMapper roleMapper;
 
     @Override
     public SysUser getByUsername(String username) {
@@ -33,6 +41,28 @@ public class SysUserServiceImpl implements SysUserService {
         return JwtUtils.createToken(user.getUsername());
     }
 
+    // 🌟 核心新增：获取组装好的用户信息和角色权限
+    @Override
+    public UserInfoVO getUserInfo(Long userId) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("该用户不存在或已被删除");
+        }
+
+        // 连表查询该用户拥有的角色编码
+        List<String> roleCodes = roleMapper.selectRoleCodesByUserId(userId);
+
+        // 组装安全的 VO 对象返回给前端
+        UserInfoVO vo = new UserInfoVO();
+        vo.setUserId(user.getId());
+        vo.setUserName(user.getUsername());
+        vo.setRealName(user.getRealName());
+        // 如果没有角色，返回空数组防止前端报错
+        vo.setRoles(roleCodes != null && !roleCodes.isEmpty() ? roleCodes : new ArrayList<>());
+
+        return vo;
+    }
+
     @Override
     public void register(SysUser user) {
         user.setStatus(1);
@@ -43,21 +73,16 @@ public class SysUserServiceImpl implements SysUserService {
     @Override
     @Transactional
     public void updateUserInfo(SysUser user) {
-        // 1. 校验用户是否存在
         SysUser existUser = userMapper.selectById(user.getId());
         if (existUser == null) {
             throw new RuntimeException("修改失败：用户不存在");
         }
 
-        // 2. 如果修改了用户名，校验新用户名是否已存在（防止冲突）
         if (user.getUsername() != null && !user.getUsername().equals(existUser.getUsername())) {
             if (userMapper.selectByUsername(user.getUsername()) != null) {
                 throw new RuntimeException("修改失败：用户名已存在");
             }
         }
-
-        // 3. 调用 Mapper 执行动态更新
-        // 这里的 update 方法在 XML 中使用了 <set> 和 <if>，会自动忽略 null 字段
         userMapper.update(user);
     }
 
@@ -80,27 +105,18 @@ public class SysUserServiceImpl implements SysUserService {
     @Override
     @Transactional(rollbackFor = Exception.class) 
     public void updateRole(Long userId, List<Long> roleIds) {
-        // 1. 安全检查：确保要操作的用户确实存在
         SysUser user = userMapper.selectById(userId);
         if (user == null) {
             throw new RuntimeException("分配角色失败：目标用户不存在");
         }
-
-        // 2. 清空旧数据：删除该用户在 sys_user_role 表中的所有既有关系
-        // 这样做是为了实现“覆盖式更新”，逻辑最清晰且不容易出错
         userRoleMapper.deleteByUserId(userId);
-
-        // 3. 插入新数据：如果传入的角色列表不为空，则批量执行插入
         if (roleIds != null && !roleIds.isEmpty()) {
             try {
                 userRoleMapper.batchInsert(userId, roleIds);
             } catch (Exception e) {
-                // 记录日志或处理数据库约束异常
                 throw new RuntimeException("角色分配执行失败，数据库写入异常");
             }
         }
-        
-        // 💡 论文亮点：此处可以在后续加入清除该用户缓存的逻辑，保证权限实时生效
     }
 
     @Override
@@ -117,47 +133,34 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     @Override
-    @Transactional // 涉及数据修改，建议开启事务
+    @Transactional 
     public void findPassword(String username, String realName, String phone, String newPassword) {
-        // 1. 根据用户名查询用户信息
         SysUser user = userMapper.selectByUsername(username);
-        
-        // 2. 核心校验逻辑：判断用户是否存在且身份信息（姓名、手机号）是否匹配
         if (user == null || !user.getRealName().equals(realName) || !user.getPhone().equals(phone)) {
             throw new RuntimeException("身份信息校验失败，请核对姓名与手机号");
         }
-        
-        // 3. 校验账号状态
         if (user.getStatus() == 0) {
             throw new RuntimeException("该账号已被停用，请联系管理员");
         }
-        
-        // 4. 执行更新
         SysUser updateParam = new SysUser();
         updateParam.setId(user.getId());
-        updateParam.setPassword(newPassword); // 建议后续引入 BCrypt 加密
+        updateParam.setPassword(newPassword); 
         userMapper.update(updateParam);
     }
 
     @Override
     @Transactional
     public void resetPassword(Long userId, String oldPassword, String newPassword) {
-        // 1. 获取用户信息
         SysUser user = userMapper.selectById(userId);
         if (user == null) {
             throw new RuntimeException("用户不存在");
         }
-        
-        // 2. 校验旧密码是否正确
         if (!user.getPassword().equals(oldPassword)) {
             throw new RuntimeException("旧密码输入错误");
         }
-        
-        // 3. 执行修改
         SysUser updateParam = new SysUser();
         updateParam.setId(userId);
         updateParam.setPassword(newPassword);
         userMapper.update(updateParam);
     }
-
 }

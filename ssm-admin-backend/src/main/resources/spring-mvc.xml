@@ -30,6 +30,7 @@
             <mvc:exclude-mapping path="/swagger-ui.html"/>
             <mvc:exclude-mapping path="/swagger-ui/**"/>
             <mvc:exclude-mapping path="/doc.html"/>
+            <mvc:exclude-mapping path="/route/getConstantRoutes"/>
 
             <bean class="com.admin.config.AuthInterceptor"/>
         </mvc:interceptor>

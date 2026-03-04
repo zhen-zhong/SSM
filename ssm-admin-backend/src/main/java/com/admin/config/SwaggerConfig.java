@@ -64,7 +64,8 @@ public class SwaggerConfig implements WebMvcConfigurer {
                     String path = operationContext.requestMappingPattern();
                     return !(path.startsWith("/user/login") || 
                             path.startsWith("/user/register") || 
-                            path.startsWith("/data/"));
+                            path.startsWith("/data/")) || 
+                            path.startsWith("/route/getConstantRoutes");
                 })
                 .build();
     }

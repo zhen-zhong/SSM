@@ -6,28 +6,42 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * 全局异常处理器
- * 作用：拦截 Controller 层抛出的所有异常，并返回统一的 JSON 格式
+ * 作用：拦截 Controller 层抛出的所有异常，并严格按照前端 Soybean Admin 的契约返回 JSON
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 1. 处理系统最基础的异常 Exception
+    // 🌟 1. 核心新增：精准处理我们手动抛出的 RuntimeException (业务异常)
+    @ExceptionHandler(RuntimeException.class)
+    public Result<String> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
+        System.err.println("拦截到业务异常！请求路径: " + request.getRequestURI() + "，原因: " + e.getMessage());
+        String errorMsg = e.getMessage();
+        
+        // 契约对齐：判断是否为 Token 失效、未登录相关的异常，如果是，返回 401
+        if (errorMsg != null && (errorMsg.contains("Token") || errorMsg.contains("登录"))) {
+            return Result.error(401, errorMsg);
+        }
+        
+        // 其他常规业务报错（如“用户名或密码错误”），返回 500，并剥离掉原先冗长的前缀
+        return Result.error(500, errorMsg);
+    }
+
+    // 2. 兜底处理：抓取真正意料之外的系统异常 Exception
     @ExceptionHandler(Exception.class)
     public Result<String> handleException(Exception e, HttpServletRequest request) {
-        // 在后台打印出真实的堆栈信息，方便我们调试
+        // 在后台打印出真实的堆栈信息，方便我们调试排错
         System.err.println("发生系统异常！请求路径: " + request.getRequestURI());
         e.printStackTrace();
         
-        // 给前端一个友好的提示，而不是一堆看不懂的代码
-        return Result.error("服务器内部错误，请联系管理员。错误信息：" + e.getMessage());
+        // 给前端一个友好的兜底提示
+        return Result.error(500, "服务器内部发生未知错误，请联系管理员。");
     }
 
-    // 2. 处理特定异常（比如：空指针异常）
+    // 3. 处理特定代码级异常（比如：空指针异常）
     @ExceptionHandler(NullPointerException.class)
-    public Result<String> handleNullPointerException(NullPointerException e) {
-        return Result.error("程序操作了空对象，请检查输入数据！");
+    public Result<String> handleNullPointerException(NullPointerException e, HttpServletRequest request) {
+        System.err.println("发生空指针异常！请求路径: " + request.getRequestURI());
+        e.printStackTrace();
+        return Result.error(500, "程序运行出现空引用，请联系后端开发人员排查！");
     }
-
-    // 3. 自定义业务异常（后面我们可以建一个 ServiceException）
-    // 当账号密码错误时，我们可以手动 throw 一个异常，被这里拦截并返回给前端
 }

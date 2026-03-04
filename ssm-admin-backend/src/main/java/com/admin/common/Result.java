@@ -4,9 +4,9 @@ import lombok.Data;
 
 @Data
 public class Result<T> {
-    private Integer code;    // 状态码: 200-成功, 500-失败, 401-无权限
-    private String message;  // 提示消息
-    private T data;          // 数据主体
+    private Integer code;
+    private String message;
+    private T data;
 
     public static <T> Result<T> success(T data) {
         Result<T> r = new Result<>();
@@ -16,10 +16,14 @@ public class Result<T> {
         return r;
     }
 
-    public static <T> Result<T> error(String msg) {
-        Result<T> r = new Result<>();
-        r.setCode(500);
-        r.setMessage(msg);
-        return r;
+    public static <T> Result<T> error(Integer code, String message) {
+        Result<T> result = new Result<>();
+        result.setCode(code);
+        result.setMessage(message);
+        return result;
+    }
+
+    public static <T> Result<T> error(String message) {
+        return error(500, message);
     }
 }

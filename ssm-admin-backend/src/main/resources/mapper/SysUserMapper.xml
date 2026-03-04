@@ -53,4 +53,10 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectById" resultType="com.admin.entity.SysUser">
+        SELECT id, username, password, real_name, phone, status, create_time, update_time, is_deleted 
+        FROM sys_user 
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
 </mapper>

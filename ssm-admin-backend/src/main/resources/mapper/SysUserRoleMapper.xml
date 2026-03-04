@@ -3,7 +3,7 @@
 
 <mapper namespace="com.admin.mapper.SysUserRoleMapper">
 
-    <delete id="deleteByUserId">
+    <delete id="deleteByUserId" parameterType="long">
         DELETE FROM sys_user_role WHERE user_id = #{userId}
     </delete>
 
@@ -13,5 +13,9 @@
             (#{userId}, #{roleId})
         </foreach>
     </insert>
+
+    <select id="countUsersByRoleId" resultType="int">
+        SELECT COUNT(*) FROM sys_user_role WHERE role_id = #{roleId}
+    </select>
 
 </mapper>

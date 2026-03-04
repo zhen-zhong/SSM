@@ -15,4 +15,6 @@ public interface SysUserRoleMapper {
      * 批量插入用户角色关系
      */
     void batchInsert(@Param("userId") Long userId, @Param("roleIds") List<Long> roleIds);
+    
+    int countUsersByRoleId(@Param("roleId") Long roleId);
 }

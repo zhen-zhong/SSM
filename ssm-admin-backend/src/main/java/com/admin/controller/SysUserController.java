@@ -1,10 +1,10 @@
 package com.admin.controller;
 
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 import com.admin.common.Result;
 import com.admin.common.annotation.Log;
+import com.admin.entity.SysRole;
 import com.admin.entity.SysUser;
+import com.admin.mapper.SysRoleMapper;
 import com.admin.service.SysUserService;
 import com.admin.vo.UserInfoVO;
 import io.swagger.annotations.Api;
@@ -12,7 +12,9 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 
 @Api(tags = "用户管理模块")
 @RestController
@@ -21,6 +23,9 @@ public class SysUserController {
 
     @Autowired
     private SysUserService userService;
+
+    @Autowired
+    private SysRoleMapper roleMapper;
 
     @ApiOperation("用户登录")
     @Log(module = "认证模块", action = "用户登录")
@@ -36,46 +41,15 @@ public class SysUserController {
     @ApiOperation("获取当前登录用户信息及角色")
     @GetMapping("/info")
     public Result<UserInfoVO> getInfo(HttpServletRequest request) {
-        // 1. 拦截器里必定能解析出 subject (也就是 username)，因为你的 Token 里有 "sub": "admin"
         String currentUsername = (String) request.getAttribute("currentUsername");
         if (currentUsername == null) {
-            throw new RuntimeException("未能获取当前登录状态，请重新登录");
+            return Result.error(401, "未能获取当前登录状态");
         }
-
-        // 2. 拐个弯：用现成的 getByUsername 方法查出该用户的全部信息（拿到 ID）
         SysUser user = userService.getByUsername(currentUsername);
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            return Result.error(401, "用户不存在");
         }
-
-        // 3. 完美复用我们写好的核心 RBAC 查询逻辑
-        UserInfoVO userInfo = userService.getUserInfo(user.getId());
-        
-        return Result.success(userInfo);
-    }
-
-    @ApiOperation("注册新用户")
-    @Log(module = "用户管理", action = "注册账号")
-    @PostMapping("/register")
-    public Result register(@RequestBody SysUser user) {
-        userService.register(user);
-        return Result.success("注册成功");
-    }
-
-    @ApiOperation("修改账号状态")
-    @Log(module = "用户管理", action = "修改状态")
-    @PutMapping("/status")
-    public Result updateStatus(@RequestParam Long id, @RequestParam Integer status) {
-        userService.updateStatus(id, status);
-        return Result.success("状态更新成功");
-    }
-
-    @ApiOperation("逻辑删除用户")
-    @Log(module = "用户管理", action = "删除用户")
-    @DeleteMapping("/{id}")
-    public Result delete(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return Result.success("删除成功");
+        return Result.success(userService.getUserInfo(user.getId()));
     }
 
     @ApiOperation("获取所有用户列表")
@@ -84,10 +58,66 @@ public class SysUserController {
         return Result.success(userService.listAll());
     }
 
+    @ApiOperation("新增用户")
+    @Log(module = "用户管理", action = "新增用户")
+    @PostMapping("/register")
+    public Result<String> register(@RequestBody SysUser user) {
+        userService.register(user);
+        return Result.success("用户添加成功");
+    }
+
+    @ApiOperation("修改用户基本信息")
+    @Log(module = "用户管理", action = "编辑用户")
+    @PutMapping("/update")
+    public Result<String> updateUserInfo(@RequestBody SysUser user) {
+        userService.updateUserInfo(user);
+        return Result.success("信息修改成功");
+    }
+
+    @ApiOperation("管理员重置用户密码")
+    @Log(module = "用户管理", action = "重置密码")
+    @PutMapping("/reset-password-admin")
+    public Result<String> resetPasswordAdmin(@RequestParam Long userId, @RequestParam String newPassword) {
+        userService.updatePassword(userId, newPassword);
+        return Result.success("密码重置成功");
+    }
+
+    @ApiOperation("分配用户角色权限")
+    @Log(module = "用户管理", action = "分配权限")
+    @PostMapping("/role")
+    public Result<String> assignRole(@RequestParam Long userId, @RequestBody List<Long> roleIds) {
+        userService.updateRole(userId, roleIds);
+        return Result.success("权限分配成功");
+    }
+
+    // 🌟 新增接口：获取所有角色列表供前端下拉框使用
+    @ApiOperation("获取所有可用角色列表")
+    @GetMapping("/role/list")
+    public Result<List<SysRole>> listAllRoles() {
+        return Result.success(roleMapper.listAllRoles());
+    }
+
+    @ApiOperation("修改账号状态")
+    @Log(module = "用户管理", action = "修改状态")
+    @PutMapping("/status")
+    public Result<String> updateStatus(@RequestParam Long id, @RequestParam Integer status) {
+        userService.updateStatus(id, status);
+        return Result.success("状态更新成功");
+    }
+
+    @ApiOperation("逻辑删除用户")
+    @Log(module = "用户管理", action = "删除用户")
+    @DeleteMapping("/{id}")
+    public Result<String> delete(@PathVariable Long id) {
+        // 🌟 这里的逻辑在 ServiceImpl 中已经加了禁止删除 admin 的判断
+        userService.deleteUser(id);
+        return Result.success("删除成功");
+    }
+
     @ApiOperation("找回密码（身份校验方式）")
     @Log(module = "用户管理", action = "找回密码")
     @PostMapping("/find-password")
-    public Result findPassword(@RequestBody Map<String, String> params) {
+    public Result<String> findPassword(@RequestBody Map<String, String> params) {
         String username = params.get("username");
         String realName = params.get("realName");
         String phone = params.get("phone");
@@ -97,30 +127,11 @@ public class SysUserController {
         return Result.success("密码重置成功，请重新登录");
     }
 
-    @ApiOperation("修改密码（登录后操作）")
-    @Log(module = "用户管理", action = "修改密码")
+    @ApiOperation("用户自行修改密码")
     @PutMapping("/reset-password")
-    public Result resetPassword(@RequestParam String oldPassword, @RequestParam String newPassword, HttpServletRequest request) {
+    public Result<String> resetPassword(@RequestParam String oldPassword, @RequestParam String newPassword, HttpServletRequest request) {
         Long currentUserId = (Long) request.getAttribute("currentUserId");
         userService.resetPassword(currentUserId, oldPassword, newPassword);
         return Result.success("修改成功");
-    }
-
-    @ApiOperation("修改个人信息")
-    @Log(module = "用户管理", action = "修改个人信息")
-    @PutMapping("/update")
-    public Result updateUserInfo(@RequestBody SysUser user, HttpServletRequest request) {
-        Long currentUserId = (Long) request.getAttribute("currentUserId");
-        user.setId(currentUserId); 
-        userService.updateUserInfo(user);
-        return Result.success("信息修改成功");
-    }
-
-    @ApiOperation("分配用户角色")
-    @Log(module = "用户管理", action = "分配角色")
-    @PostMapping("/role")
-    public Result assignRole(@RequestParam Long userId, @RequestBody List<Long> roleIds) {
-        userService.updateRole(userId, roleIds);
-        return Result.success("角色分配成功");
     }
 }

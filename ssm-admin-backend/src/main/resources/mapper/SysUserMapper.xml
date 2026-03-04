@@ -3,7 +3,7 @@
 
 <mapper namespace="com.admin.mapper.SysUserMapper">
 
-    <resultMap id="BaseResultMap" type="com.admin.entity.SysUser">
+    <resultMap id="UserWithRoleMap" type="com.admin.entity.SysUser">
         <id column="id" property="id" />
         <result column="username" property="username" />
         <result column="password" property="password" />
@@ -13,23 +13,36 @@
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
         <result column="is_deleted" property="isDeleted" />
+        <collection property="roles" ofType="com.admin.entity.SysRole" 
+                    select="com.admin.mapper.SysRoleMapper.selectRolesByUserId" column="id" />
     </resultMap>
 
     <sql id="Base_Column_List">
         id, username, password, real_name, phone, status, create_time, update_time, is_deleted
     </sql>
 
+    <select id="listAll" resultMap="UserWithRoleMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectById" resultMap="UserWithRoleMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
     <insert id="insert" parameterType="com.admin.entity.SysUser" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_user (
-            username, password, real_name, phone, status, is_deleted
-        ) VALUES (
-            #{username}, #{password}, #{realName}, #{phone}, #{status}, #{isDeleted}
-        )
+        INSERT INTO sys_user (username, password, real_name, phone, status, is_deleted)
+        VALUES (#{username}, #{password}, #{realName}, #{phone}, #{status}, 0)
     </insert>
 
     <update id="update" parameterType="com.admin.entity.SysUser">
         UPDATE sys_user
         <set>
+            <if test="username != null">username = #{username},</if>
             <if test="password != null">password = #{password},</if>
             <if test="realName != null">real_name = #{realName},</if>
             <if test="phone != null">phone = #{phone},</if>
@@ -40,23 +53,10 @@
         WHERE id = #{id}
     </update>
 
-    <select id="selectByUsername" resultMap="BaseResultMap">
+    <select id="selectByUsername" resultMap="UserWithRoleMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sys_user
         WHERE username = #{username} AND is_deleted = 0
-    </select>
-
-    <select id="listAll" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
-        FROM sys_user
-        WHERE is_deleted = 0
-        ORDER BY create_time DESC
-    </select>
-
-    <select id="selectById" resultType="com.admin.entity.SysUser">
-        SELECT id, username, password, real_name, phone, status, create_time, update_time, is_deleted 
-        FROM sys_user 
-        WHERE id = #{id} AND is_deleted = 0
     </select>
 
 </mapper>

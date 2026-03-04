@@ -23,7 +23,6 @@ public class SysUserServiceImpl implements SysUserService {
     @Autowired
     private SysUserRoleMapper userRoleMapper;
 
-    // 🌟 注入刚刚创建的角色查询 Mapper
     @Autowired
     private SysRoleMapper roleMapper;
 
@@ -41,7 +40,6 @@ public class SysUserServiceImpl implements SysUserService {
         return JwtUtils.createToken(user.getUsername());
     }
 
-    // 🌟 核心新增：获取组装好的用户信息和角色权限
     @Override
     public UserInfoVO getUserInfo(Long userId) {
         SysUser user = userMapper.selectById(userId);
@@ -49,29 +47,45 @@ public class SysUserServiceImpl implements SysUserService {
             throw new RuntimeException("该用户不存在或已被删除");
         }
 
-        // 连表查询该用户拥有的角色编码
         List<String> roleCodes = roleMapper.selectRoleCodesByUserId(userId);
 
-        // 组装安全的 VO 对象返回给前端
         UserInfoVO vo = new UserInfoVO();
         vo.setUserId(user.getId());
         vo.setUserName(user.getUsername());
         vo.setRealName(user.getRealName());
-        // 如果没有角色，返回空数组防止前端报错
         vo.setRoles(roleCodes != null && !roleCodes.isEmpty() ? roleCodes : new ArrayList<>());
 
         return vo;
     }
 
+    /**
+     * 修改后的注册逻辑：支持同步保存角色关联
+     */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void register(SysUser user) {
-        user.setStatus(1);
-        user.setIsDeleted(0);
-        userMapper.insert(user);
+        SysUser existUser = userMapper.selectByUsername(user.getUsername());
+        if (existUser != null) {
+            throw new RuntimeException("用户名已存在");
+        }
+
+        // 2. 设置初始状态
+        if (user.getStatus() == null) {
+            user.setStatus(1);
+        }
+        
+        // 3. 插入用户基本信息
+        userMapper.insert(user); 
+        
+        // 4. 处理角色关联
+        Long userId = user.getId(); 
+        if (user.getRoleIds() != null && !user.getRoleIds().isEmpty()) {
+            userRoleMapper.batchInsert(userId, user.getRoleIds());
+        }
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void updateUserInfo(SysUser user) {
         SysUser existUser = userMapper.selectById(user.getId());
         if (existUser == null) {
@@ -84,6 +98,14 @@ public class SysUserServiceImpl implements SysUserService {
             }
         }
         userMapper.update(user);
+
+        // 🌟 如果修改用户时也传了 roleIds，则同步更新角色关联
+        if (user.getRoleIds() != null) {
+            userRoleMapper.deleteByUserId(user.getId());
+            if (!user.getRoleIds().isEmpty()) {
+                userRoleMapper.batchInsert(user.getId(), user.getRoleIds());
+            }
+        }
     }
 
     @Override
@@ -121,6 +143,11 @@ public class SysUserServiceImpl implements SysUserService {
 
     @Override
     public void deleteUser(Long id) {
+        SysUser userToDelete = userMapper.selectById(id);
+        
+        if (userToDelete != null && "admin".equalsIgnoreCase(userToDelete.getUsername())) {
+            throw new RuntimeException("操作失败：系统内置超级管理员账号禁止删除！");
+        }
         SysUser user = new SysUser();
         user.setId(id);
         user.setIsDeleted(1);

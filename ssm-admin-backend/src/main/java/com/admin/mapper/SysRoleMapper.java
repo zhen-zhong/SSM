@@ -20,6 +20,9 @@ public interface SysRoleMapper {
     /** 根据ID查询单个角色 */
     SysRole selectById(@Param("id") Long id);
 
+    /** 根据角色编码查询单个角色（用于唯一性校验） */
+    SysRole selectByRoleCode(@Param("roleCode") String roleCode);
+
     /** 新增角色 */
     int insert(SysRole role);
 

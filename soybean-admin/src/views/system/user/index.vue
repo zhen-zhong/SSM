@@ -101,7 +101,7 @@ const columns: DataTableColumns<any> =[
   {
     title: '角色',
     key: 'roles',
-    width: 150,
+    width: 80,
     render: (row) => (
       <NSpace size={[4, 4]}>
         {row.roles?.map((role: any) => (
@@ -121,7 +121,7 @@ const columns: DataTableColumns<any> =[
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 100,
     align: 'center',
     fixed: 'right',
     render: (row) => (

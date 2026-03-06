@@ -30,6 +30,12 @@
         FROM sys_role
         ORDER BY id ASC
     </select>
+    
+    <select id="selectByRoleCode" resultMap="RoleResultMap">
+        SELECT id, role_name, role_code, description, create_time, update_time
+        FROM sys_role
+        WHERE role_code = #{roleCode}
+    </select>
 
     <insert id="insert" parameterType="com.admin.entity.SysRole">
         INSERT INTO sys_role (role_name, role_code, description)

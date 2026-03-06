@@ -57,11 +57,26 @@ public class SysRoleServiceImpl implements SysRoleService {
 
     @Override
     public void addRole(SysRole role) {
+        if (role.getRoleCode() == null || role.getRoleCode().trim().isEmpty()) {
+            throw new RuntimeException("操作失败：角色编码不能为空！");
+        }
+        SysRole existRole = roleMapper.selectByRoleCode(role.getRoleCode());
+        if (existRole != null) {
+            throw new RuntimeException("操作失败：角色编码已存在，请更换！");
+        }
+        
         roleMapper.insert(role);
     }
 
     @Override
     public void updateRole(SysRole role) {
+        if (role.getRoleCode() != null && !role.getRoleCode().trim().isEmpty()) {
+            SysRole existRole = roleMapper.selectByRoleCode(role.getRoleCode());
+            if (existRole != null && !existRole.getId().equals(role.getId())) {
+                throw new RuntimeException("操作失败：角色编码已存在，请更换！");
+            }
+        }
+        
         roleMapper.update(role);
     }
 

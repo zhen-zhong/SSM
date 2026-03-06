@@ -81,7 +81,9 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base',
     meta: {
       title: 'system',
-      i18nKey: 'route.system'
+      i18nKey: 'route.system',
+      order: 2,
+      roles: ['admin','test_admin']
     },
     children: [
       {
@@ -100,7 +102,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           title: 'system_user',
           i18nKey: 'route.system_user'
-        },
+        }
       }
     ]
   }

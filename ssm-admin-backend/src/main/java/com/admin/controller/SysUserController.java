@@ -2,9 +2,9 @@ package com.admin.controller;
 
 import com.admin.common.Result;
 import com.admin.common.annotation.Log;
-import com.admin.entity.SysRole;
 import com.admin.entity.SysUser;
 import com.admin.mapper.SysRoleMapper;
+import com.admin.service.SysRoleService;
 import com.admin.service.SysUserService;
 import com.admin.vo.UserInfoVO;
 import io.swagger.annotations.Api;
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @Api(tags = "用户管理模块")
 @RestController
@@ -24,6 +25,10 @@ public class SysUserController {
     @Autowired
     private SysUserService userService;
 
+    // 🌟 注入 RoleService 以便复用它刚才写好的包含 -1 逻辑的分页方法
+    @Autowired
+    private SysRoleService roleService;
+
     @Autowired
     private SysRoleMapper roleMapper;
 
@@ -32,7 +37,7 @@ public class SysUserController {
     @PostMapping("/login")
     public Result<Map<String, String>> login(@RequestBody SysUser loginUser) {
         String token = userService.login(loginUser.getUsername(), loginUser.getPassword());
-        Map<String, String> data = new java.util.HashMap<>();
+        Map<String, String> data = new HashMap<>();
         data.put("token", token);
         data.put("refreshToken", token); 
         return Result.success(data);
@@ -54,8 +59,8 @@ public class SysUserController {
 
     @ApiOperation("获取所有用户列表")
     @GetMapping("/list")
-    public Result<List<SysUser>> list() {
-        return Result.success(userService.listAll());
+    public Result<Map<String, Object>> list(@RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(userService.listPage(pageNum, pageSize));
     }
 
     @ApiOperation("新增用户")
@@ -90,11 +95,10 @@ public class SysUserController {
         return Result.success("权限分配成功");
     }
 
-    // 🌟 新增接口：获取所有角色列表供前端下拉框使用
     @ApiOperation("获取所有可用角色列表")
     @GetMapping("/role/list")
-    public Result<List<SysRole>> listAllRoles() {
-        return Result.success(roleMapper.listAllRoles());
+    public Result<Map<String, Object>> listAllRoles(@RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(roleService.listPage(pageNum, pageSize));
     }
 
     @ApiOperation("修改账号状态")
@@ -109,7 +113,6 @@ public class SysUserController {
     @Log(module = "用户管理", action = "删除用户")
     @DeleteMapping("/{id}")
     public Result<String> delete(@PathVariable Long id) {
-        // 🌟 这里的逻辑在 ServiceImpl 中已经加了禁止删除 admin 的判断
         userService.deleteUser(id);
         return Result.success("删除成功");
     }
@@ -122,7 +125,6 @@ public class SysUserController {
         String realName = params.get("realName");
         String phone = params.get("phone");
         String newPassword = params.get("newPassword");
-        
         userService.findPassword(username, realName, phone, newPassword);
         return Result.success("密码重置成功，请重新登录");
     }

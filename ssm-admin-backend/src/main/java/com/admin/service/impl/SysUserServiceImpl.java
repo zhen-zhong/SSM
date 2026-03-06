@@ -5,14 +5,19 @@ import com.admin.mapper.SysRoleMapper;
 import com.admin.mapper.SysUserMapper;
 import com.admin.mapper.SysUserRoleMapper;
 import com.admin.service.SysUserService;
+import com.github.pagehelper.PageHelper; 
+import com.github.pagehelper.PageInfo;
 import com.admin.utils.JwtUtils;
 import com.admin.vo.UserInfoVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.admin.entity.SysRole;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SysUserServiceImpl implements SysUserService {
@@ -32,6 +37,27 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     @Override
+    public Map<String, Object> listPage(int pageNum, int pageSize) {
+        // 1. 开启分页拦截
+        PageHelper.startPage(pageNum, pageSize);
+        
+        // 2. 直接查询。由于 XML 中配置了 collection select，MyBatis 会自动为这 10 个用户拉取角色
+        List<SysUser> list = userMapper.listAll(); 
+        
+        // 3. 将结果交由 PageInfo 处理总页数等计算
+        PageInfo<SysUser> pageInfo = new PageInfo<>(list);
+
+        // 4. 拼装纯净的返回结果（不再需要手动 for 循环去查角色了）
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", pageInfo.getList());
+        result.put("total", pageInfo.getTotal());
+        result.put("pageNum", pageInfo.getPageNum());
+        result.put("pageSize", pageInfo.getPageSize());
+        
+        return result;
+    }
+
+    @Override
     public String login(String username, String password) {
         SysUser user = userMapper.selectByUsername(username);
         if (user == null || !user.getPassword().equals(password)) {
@@ -46,21 +72,15 @@ public class SysUserServiceImpl implements SysUserService {
         if (user == null) {
             throw new RuntimeException("该用户不存在或已被删除");
         }
-
         List<String> roleCodes = roleMapper.selectRoleCodesByUserId(userId);
-
         UserInfoVO vo = new UserInfoVO();
         vo.setUserId(user.getId());
         vo.setUserName(user.getUsername());
         vo.setRealName(user.getRealName());
         vo.setRoles(roleCodes != null && !roleCodes.isEmpty() ? roleCodes : new ArrayList<>());
-
         return vo;
     }
 
-    /**
-     * 修改后的注册逻辑：支持同步保存角色关联
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(SysUser user) {
@@ -68,16 +88,10 @@ public class SysUserServiceImpl implements SysUserService {
         if (existUser != null) {
             throw new RuntimeException("用户名已存在");
         }
-
-        // 2. 设置初始状态
         if (user.getStatus() == null) {
             user.setStatus(1);
         }
-        
-        // 3. 插入用户基本信息
         userMapper.insert(user); 
-        
-        // 4. 处理角色关联
         Long userId = user.getId(); 
         if (user.getRoleIds() != null && !user.getRoleIds().isEmpty()) {
             userRoleMapper.batchInsert(userId, user.getRoleIds());
@@ -91,15 +105,12 @@ public class SysUserServiceImpl implements SysUserService {
         if (existUser == null) {
             throw new RuntimeException("修改失败：用户不存在");
         }
-
         if (user.getUsername() != null && !user.getUsername().equals(existUser.getUsername())) {
             if (userMapper.selectByUsername(user.getUsername()) != null) {
                 throw new RuntimeException("修改失败：用户名已存在");
             }
         }
         userMapper.update(user);
-
-        // 🌟 如果修改用户时也传了 roleIds，则同步更新角色关联
         if (user.getRoleIds() != null) {
             userRoleMapper.deleteByUserId(user.getId());
             if (!user.getRoleIds().isEmpty()) {
@@ -144,7 +155,6 @@ public class SysUserServiceImpl implements SysUserService {
     @Override
     public void deleteUser(Long id) {
         SysUser userToDelete = userMapper.selectById(id);
-        
         if (userToDelete != null && "admin".equalsIgnoreCase(userToDelete.getUsername())) {
             throw new RuntimeException("操作失败：系统内置超级管理员账号禁止删除！");
         }

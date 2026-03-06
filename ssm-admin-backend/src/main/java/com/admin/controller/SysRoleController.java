@@ -8,7 +8,7 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @Api(tags = "角色管理模块")
 @RestController
@@ -17,6 +17,13 @@ public class SysRoleController {
 
     @Autowired
     private SysRoleService roleService;
+
+    @ApiOperation("获取角色列表(分页)")
+    @GetMapping("/list")
+    public Result<Map<String, Object>> list(@RequestParam(defaultValue = "1") int pageNum, 
+                                            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(roleService.listPage(pageNum, pageSize));
+    }
 
     @ApiOperation("新增角色")
     @PostMapping("/add")

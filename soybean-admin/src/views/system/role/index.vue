@@ -17,6 +17,7 @@
 
     <n-card :bordered="false" class="shadow-sm rounded-16px" size="small">
       <n-data-table
+        remote
         :columns="columns"
         :data="tableData"
         :loading="loading"
@@ -115,7 +116,23 @@ const columns: DataTableColumns<any> = [
   }
 ];
 
-const pagination = { pageSize: 10 };
+// 🌟 核心修改：将静态 pagination 改为响应式分页对象
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50],
+  onChange: (page: number) => {
+    pagination.page = page;
+    init();
+  },
+  onUpdatePageSize: (pageSize: number) => {
+    pagination.pageSize = pageSize;
+    pagination.page = 1;
+    init();
+  }
+});
 
 // --- 核心逻辑 ---
 
@@ -123,8 +140,14 @@ const pagination = { pageSize: 10 };
 async function init() {
   loading.value = true;
   try {
-    const { data } = await fetchRoleList();
-    if (data) tableData.value = data;
+    // 🌟 传入分页参数，并对接返回的精简分页结构
+    const { data, error } = await fetchRoleList(pagination.page, pagination.pageSize);
+    if (!error && data) {
+      tableData.value = data.list || [];
+      pagination.itemCount = data.total || 0;
+      pagination.page = data.pageNum || 1;
+      pagination.pageSize = data.pageSize || 10;
+    }
   } finally {
     loading.value = false;
   }
@@ -157,8 +180,9 @@ async function handleSubmit() {
     const api = isEdit.value ? fetchUpdateRole : fetchAddRole;
     const { error } = await api(formModel);
 
+    // 如果接口请求报错，保持弹窗不关闭
     if (!error) {
-      message.success('保存成功');
+      message.success(isEdit.value ? '修改成功' : '新增成功');
       showModal.value = false;
       init();
     }
@@ -167,11 +191,10 @@ async function handleSubmit() {
   }
 }
 
-/** 删除角色 (带后端异常捕获) */
+/** 删除角色 */
 async function handleDelete(id: number) {
-  const { error, data } = await fetchDeleteRole(id);
-  // 🌟 重点：如果后端抛出 RuntimeException（如有关联用户），Soybean 的 request 拦截器通常会显示错误
-  // 这里我们只需要处理成功后的逻辑
+  const { error } = await fetchDeleteRole(id);
+  // 重点：如果后端抛出 RuntimeException（如有关联用户），拦截器会显示错误，并在此处拦截
   if (!error) {
     message.success('删除成功');
     init();

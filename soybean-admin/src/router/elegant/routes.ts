@@ -83,7 +83,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'system',
       i18nKey: 'route.system',
       order: 2,
-      roles: ['admin','test_admin']
+      roles: ['admin', 'test_admin']
     },
     children: [
       {

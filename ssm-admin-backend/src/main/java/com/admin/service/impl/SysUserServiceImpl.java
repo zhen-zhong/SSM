@@ -63,7 +63,8 @@ public class SysUserServiceImpl implements SysUserService {
         if (user == null || !user.getPassword().equals(password)) {
             throw new RuntimeException("用户名或密码错误");
         }
-        return JwtUtils.createToken(user.getUsername());
+        // 🌟 修改点：调用 JwtUtils 生成 Token 时，同时传入 user.getId() 和 user.getUsername()
+        return JwtUtils.createToken(user.getId(), user.getUsername());
     }
 
     @Override

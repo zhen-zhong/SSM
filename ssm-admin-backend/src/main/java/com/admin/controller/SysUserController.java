@@ -25,7 +25,6 @@ public class SysUserController {
     @Autowired
     private SysUserService userService;
 
-    // 🌟 注入 RoleService 以便复用它刚才写好的包含 -1 逻辑的分页方法
     @Autowired
     private SysRoleService roleService;
 
@@ -132,8 +131,14 @@ public class SysUserController {
     @ApiOperation("用户自行修改密码")
     @PutMapping("/reset-password")
     public Result<String> resetPassword(@RequestParam String oldPassword, @RequestParam String newPassword, HttpServletRequest request) {
-        Long currentUserId = (Long) request.getAttribute("currentUserId");
-        userService.resetPassword(currentUserId, oldPassword, newPassword);
+        // 🌟 终极防空指针大法：直接用 currentUsername 拿 ID
+        String currentUsername = (String) request.getAttribute("currentUsername");
+        if (currentUsername == null) {
+            return Result.error(401, "未能获取当前登录状态");
+        }
+        SysUser user = userService.getByUsername(currentUsername);
+        
+        userService.resetPassword(user.getId(), oldPassword, newPassword);
         return Result.success("修改成功");
     }
 }

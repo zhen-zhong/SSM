@@ -31,6 +31,7 @@
           <n-tree
             :data="menuTree"
             v-model:checked-keys="checkedKeys"
+            @update:indeterminate-keys="handleIndeterminateKeys"
             key-field="id"
             label-field="label"
             children-field="children"
@@ -50,6 +51,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useMessage } from 'naive-ui';
 import { useAuthStore } from '@/store/modules/auth';
+// 注意：请确保这些 API 方法在你的 @/service/api/system 中已经正确定义
 import {
   fetchGetAllMenuTree,
   fetchRoleList,
@@ -71,7 +73,9 @@ const menuTree = ref([]);
 const roleOptions = ref<Array<{ label: string; value: number; roleCode: string }>>([]);
 const currentRoleId = ref<number | null>(null);
 
+// 🌟 分别存储全选节点和半选节点
 const checkedKeys = ref<number[]>([]);
+const indeterminateKeys = ref<number[]>([]);
 
 async function initData() {
   loading.value = true;
@@ -100,11 +104,17 @@ async function initData() {
   }
 }
 
+// 🌟 监听树组件的半选节点更新
+function handleIndeterminateKeys(keys: Array<string | number>) {
+  indeterminateKeys.value = keys.map(Number);
+}
+
 async function handleRoleChange(roleId: number | null) {
   if (!roleId) return;
   loading.value = true;
   try {
     const { data } = await fetchGetRoleMenuIds(roleId);
+    // 回显后端传来的菜单 ID
     checkedKeys.value = (data || []).map(Number);
   } finally {
     loading.value = false;
@@ -115,9 +125,11 @@ async function handleSaveMenus() {
   if (!currentRoleId.value) return;
   submitLoading.value = true;
   try {
+    const finalMenuIds = Array.from(new Set([...checkedKeys.value, ...indeterminateKeys.value]));
+
     await fetchAssignRoleMenus({
       roleId: currentRoleId.value,
-      menuIds: checkedKeys.value
+      menuIds: finalMenuIds
     });
     message.success('菜单权限更新成功');
   } finally {

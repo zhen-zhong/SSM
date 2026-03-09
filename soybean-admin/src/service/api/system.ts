@@ -121,3 +121,17 @@ export function fetchUpdateRole(data: any) {
 export function fetchDeleteRole(id: number) {
   return request<any>({ url: `/role/${id}`, method: 'delete' });
 }
+
+export function fetchGetAllMenuTree() {
+  return request<any>({ url: '/route/getAllMenuTree', method: 'get' });
+}
+
+// 获取某角色已分配的菜单 ID
+export function fetchGetRoleMenuIds(roleId: number) {
+  return request<number[]>({ url: '/role/getMenuIds', method: 'get', params: { roleId } });
+}
+
+// 提交保存角色的菜单分配
+export function fetchAssignRoleMenus(data: { roleId: number; menuIds: number[] }) {
+  return request<void>({ url: '/role/assignMenus', method: 'post', data });
+}

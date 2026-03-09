@@ -2,6 +2,7 @@ package com.admin.service.impl;
 
 import com.admin.entity.SysRole;
 import com.admin.mapper.SysRoleMapper;
+import com.admin.mapper.SysRoleMenuMapper;
 import com.admin.mapper.SysUserRoleMapper;
 import com.admin.service.SysRoleService;
 import com.github.pagehelper.PageHelper;
@@ -23,11 +24,13 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Autowired
     private SysUserRoleMapper userRoleMapper;
 
+    @Autowired
+    private SysRoleMenuMapper roleMenuMapper;
+
     @Override
     public Map<String, Object> listPage(int pageNum, int pageSize) {
         Map<String, Object> result = new HashMap<>();
 
-        // 如果传 -1，则跳过 PageHelper，直接全量查询
         if (pageNum == -1) {
             List<SysRole> list = roleMapper.listAllRoles();
             result.put("list", list);
@@ -37,7 +40,6 @@ public class SysRoleServiceImpl implements SysRoleService {
             return result;
         }
 
-        // 正常分页逻辑
         PageHelper.startPage(pageNum, pageSize);
         List<SysRole> list = roleMapper.listAllRoles();
         PageInfo<SysRole> pageInfo = new PageInfo<>(list);
@@ -64,7 +66,6 @@ public class SysRoleServiceImpl implements SysRoleService {
         if (existRole != null) {
             throw new RuntimeException("操作失败：角色编码已存在，请更换！");
         }
-        
         roleMapper.insert(role);
     }
 
@@ -76,7 +77,6 @@ public class SysRoleServiceImpl implements SysRoleService {
                 throw new RuntimeException("操作失败：角色编码已存在，请更换！");
             }
         }
-        
         roleMapper.update(role);
     }
 
@@ -94,5 +94,19 @@ public class SysRoleServiceImpl implements SysRoleService {
         }
 
         roleMapper.deleteById(id);
+    }
+
+    @Override
+    public List<Long> getMenuIdsByRoleId(Long roleId) {
+        return roleMenuMapper.selectMenuIdsByRoleId(roleId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void assignMenus(Long roleId, List<Long> menuIds) {
+        roleMenuMapper.deleteByRoleId(roleId);
+        if (menuIds != null && !menuIds.isEmpty()) {
+            roleMenuMapper.batchInsert(roleId, menuIds);
+        }
     }
 }

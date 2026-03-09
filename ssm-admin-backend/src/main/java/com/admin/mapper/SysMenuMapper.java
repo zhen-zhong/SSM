@@ -8,4 +8,5 @@ import java.util.List;
 @Mapper
 public interface SysMenuMapper {
     List<SysMenu> selectMenusByUserId(@Param("userId") Long userId);
+    List<SysMenu> listAll();
 }

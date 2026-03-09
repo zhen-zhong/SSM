@@ -14,4 +14,8 @@
         ORDER BY m.sort_num ASC
     </select>
 
+    <select id="listAll" resultType="com.admin.entity.SysMenu">
+        SELECT * FROM sys_menu ORDER BY sort_num ASC
+    </select>
+    
 </mapper>

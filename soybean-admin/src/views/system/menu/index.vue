@@ -51,7 +51,6 @@
 import { ref, onMounted, computed } from 'vue';
 import { useMessage } from 'naive-ui';
 import { useAuthStore } from '@/store/modules/auth';
-// 注意：请确保这些 API 方法在你的 @/service/api/system 中已经正确定义
 import {
   fetchGetAllMenuTree,
   fetchRoleList,
@@ -73,7 +72,6 @@ const menuTree = ref([]);
 const roleOptions = ref<Array<{ label: string; value: number; roleCode: string }>>([]);
 const currentRoleId = ref<number | null>(null);
 
-// 🌟 分别存储全选节点和半选节点
 const checkedKeys = ref<number[]>([]);
 const indeterminateKeys = ref<number[]>([]);
 
@@ -104,7 +102,6 @@ async function initData() {
   }
 }
 
-// 🌟 监听树组件的半选节点更新
 function handleIndeterminateKeys(keys: Array<string | number>) {
   indeterminateKeys.value = keys.map(Number);
 }
@@ -114,7 +111,6 @@ async function handleRoleChange(roleId: number | null) {
   loading.value = true;
   try {
     const { data } = await fetchGetRoleMenuIds(roleId);
-    // 回显后端传来的菜单 ID
     checkedKeys.value = (data || []).map(Number);
   } finally {
     loading.value = false;

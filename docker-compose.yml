@@ -1,25 +1,6 @@
 version: '3.8'
 
 services:
-  # Jenkins 服务配置 (关键部分)
-  jenkins:
-    image: jenkins/jenkins:lts
-    container_name: jenkins_server
-    restart: always
-    ports:
-      - "8080:8080"
-      - "50000:50000"
-    user: root
-    volumes:
-      - ./jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
-      - /usr/bin/docker-compose:/usr/bin/docker-compose
-      - /usr/lib/x86_64-linux-gnu/libltdl.so.7:/usr/lib/x86_64-linux-gnu/libltdl.so.7
-      - /home/ubuntu/.ssh/id_ed25519:/var/jenkins_home/.ssh/id_ed25519:ro
-    networks:
-      - app-network
-
   # 后端服务
   backend:
     build:

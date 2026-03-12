@@ -1,0 +1,1 @@
+import{d as a,a as s,o as r,b as o}from"./index-DB5KKD1S.js";const t={class:"h-full"},c=["src"],m=a({name:"iframe-page",__name:"[url]",props:{url:{}},setup(e){return(l,n)=>(r(),s("div",t,[o("iframe",{id:"iframePage",class:"size-full",src:e.url},null,8,c)]))}});export{m as default};

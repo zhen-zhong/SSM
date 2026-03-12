@@ -1,4 +1,5 @@
-FROM tomcat:9.0-eclipse-temurin-17
+# 使用带有国内可用代理前缀的基础镜像，直接绕过 403 限制
+FROM docker.1panel.live/library/tomcat:9.0-eclipse-temurin-17
 
 # 设置时区为上海，保证 AOP 日志时间准确
 ENV TZ=Asia/Shanghai

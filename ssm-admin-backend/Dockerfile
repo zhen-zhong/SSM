@@ -1,15 +1,15 @@
-FROM tomcat:9.0-jre17-temurin-jammy
+# 依旧使用防 403/404 的代理源
+FROM dockerpull.com/library/nginx:alpine
 
-ENV TZ=Asia/Shanghai
+# 清理 Nginx 默认页面
+RUN rm -rf /usr/share/nginx/html/*
 
-WORKDIR /usr/local/tomcat
+# 【修改点 1】复制前端打包产物（加上了 soybean-admin/ 前缀）
+COPY soybean-admin/dist/ /usr/share/nginx/html/
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
-    && echo $TZ > /etc/timezone \
-    && rm -rf /usr/local/tomcat/webapps/*
+# 【修改点 2】把外部同级的 Nginx 配置直接打进镜像里，彻底解决 Jenkins 挂载报错！
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
-COPY target/ssm-admin-backend.war /usr/local/tomcat/webapps/ROOT.war
+EXPOSE 80
 
-EXPOSE 8080
-
-CMD ["catalina.sh", "run"]
+CMD ["nginx", "-g", "daemon off;"]

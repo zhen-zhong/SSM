@@ -2,6 +2,8 @@ services:
   backend:
     build:
       context: ./ssm-admin-backend
+      dockerfile: Dockerfile
+    image: ssm-admin-backend:latest
     container_name: ssm-backend
     restart: always
     expose:

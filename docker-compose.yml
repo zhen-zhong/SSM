@@ -17,6 +17,7 @@ services:
     build:
       context: .
       dockerfile: ./soybean-admin/Dockerfile
+    image: ssm-vue-deploy-frontend:latest
     container_name: vue-frontend
     restart: always
     ports:

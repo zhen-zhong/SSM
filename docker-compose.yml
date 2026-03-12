@@ -1,39 +1,32 @@
 version: '3.8'
 
 services:
-  # 后端 SSM 服务
-  ssm-backend:
+  # 后端服务
+  backend:
     build:
       context: ./ssm-admin-backend
-      dockerfile: Dockerfile
     container_name: ssm-backend
     restart: always
-    # 不映射 8080 端口到宿主机，避免与 Jenkins 冲突！只在 Docker 内网可见
     expose:
       - "8080"
     extra_hosts:
-      # 让容器可以通过 host.docker.internal 访问宿主机上独立的 MySQL 和 Redis 容器
       - "host.docker.internal:host-gateway"
     networks:
       - app-network
 
-  # 前端与代理 Nginx 服务
-  vue-frontend:
+  # 前端服务
+  frontend:
     build:
       context: ./soybean-admin
-      dockerfile: Dockerfile
     container_name: vue-frontend
     restart: always
     ports:
-      - "80:80"     # HTTP
-      - "443:443"   # HTTPS (如启用)
+      - "80:80"
+      - "443:443"
     volumes:
-      # 将宿主机的 nginx.conf 映射进容器
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # 如果你有 SSL 证书，把宿主机证书文件夹映射进去 (可选)
-      # - ./nginx/ssl:/etc/nginx/ssl:ro 
     depends_on:
-      - ssm-backend
+      - backend
     networks:
       - app-network
 

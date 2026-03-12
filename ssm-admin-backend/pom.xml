@@ -113,7 +113,6 @@
         </configuration>
       </plugin>
 
-      <!-- 【新增】WAR 打包插件：强制指定 3.4.0 版本以兼容 JDK 17 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
@@ -123,7 +122,6 @@
         </configuration>
       </plugin>
       
-      <!-- Jetty 插件 -->
       <plugin>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-maven-plugin</artifactId>

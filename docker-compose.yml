@@ -11,7 +11,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - app-network
+      - ssm-network
 
   frontend:
     build:
@@ -21,12 +21,11 @@ services:
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - backend
     networks:
-      - app-network
+      - ssm-network
 
 networks:
-  app-network:
-    driver: bridge
+  ssm-network:
+    external: true

@@ -135,3 +135,49 @@ export function fetchGetRoleMenuIds(roleId: number) {
 export function fetchAssignRoleMenus(data: { roleId: number; menuIds: number[] }) {
   return request<void>({ url: '/role/assignMenus', method: 'post', data });
 }
+
+
+// 项目管理 API
+
+/** 获取项目分页列表 */
+export function fetchProjectList(pageNum: number, pageSize: number, projectName?: string) {
+  return request<any>({
+    url: '/project/list',
+    method: 'get',
+    params: { pageNum, pageSize, projectName }
+  });
+}
+
+/** 新增项目 */
+export function fetchAddProject(data: any) {
+  return request<void>({
+    url: '/project/add',
+    method: 'post',
+    data
+  });
+}
+
+/** 修改项目 */
+export function fetchUpdateProject(data: any) {
+  return request<void>({
+    url: '/project/update',
+    method: 'put',
+    data
+  });
+}
+
+/** 删除项目 */
+export function fetchDeleteProject(id: number) {
+  return request<void>({
+    url: `/project/delete/${id}`,
+    method: 'delete'
+  });
+}
+
+/** 获取全部正常用户 (用于负责人多选下拉框) */
+export function fetchAllUsers() {
+  return request<any>({
+    url: '/user/all',
+    method: 'get'
+  });
+}

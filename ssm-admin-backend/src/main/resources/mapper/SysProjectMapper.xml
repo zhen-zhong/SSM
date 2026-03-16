@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.admin.mapper.SysProjectMapper">
+
+    <!-- 查询项目列表，并使用 GROUP_CONCAT 聚合负责人信息 -->
+    <select id="selectProjectList" resultType="com.admin.entity.SysProject">
+        SELECT 
+            p.id, p.project_name, p.status, p.start_time, p.estimated_end_date, 
+            p.actual_end_date, p.remark, p.create_time, p.update_time,
+            GROUP_CONCAT(u.real_name SEPARATOR ', ') as managerNames,
+            GROUP_CONCAT(u.id SEPARATOR ',') as managerIdsStr
+        FROM sys_project p
+        LEFT JOIN sys_project_manager pm ON p.id = pm.project_id
+        LEFT JOIN sys_user u ON pm.user_id = u.id AND u.is_deleted = 0
+        WHERE p.is_deleted = 0
+        <if test="projectName != null and projectName != ''">
+            AND p.project_name LIKE CONCAT('%', #{projectName}, '%')
+        </if>
+        GROUP BY p.id
+        ORDER BY p.create_time DESC
+    </select>
+
+    <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_project (project_name, status, start_time, estimated_end_date, actual_end_date, remark)
+        VALUES (#{projectName}, #{status}, #{startTime}, #{estimatedEndDate}, #{actualEndDate}, #{remark})
+    </insert>
+
+    <update id="updateProject">
+        UPDATE sys_project
+        <set>
+            <if test="projectName != null">project_name = #{projectName},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="estimatedEndDate != null">estimated_end_date = #{estimatedEndDate},</if>
+            <if test="actualEndDate != null">actual_end_date = #{actualEndDate},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteProjectById">
+        UPDATE sys_project SET is_deleted = 1 WHERE id = #{id}
+    </update>
+
+    <!-- 批量插入负责人映射 -->
+    <insert id="insertProjectManagers">
+        INSERT INTO sys_project_manager (project_id, user_id) VALUES
+        <foreach collection="userIds" item="userId" separator=",">
+            (#{projectId}, #{userId})
+        </foreach>
+    </insert>
+
+    <!-- 清理旧负责人映射 -->
+    <delete id="deleteManagersByProjectId">
+        DELETE FROM sys_project_manager WHERE project_id = #{projectId}
+    </delete>
+</mapper>

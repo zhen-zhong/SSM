@@ -229,7 +229,8 @@ const local: App.I18n.Schema = {
     system: '系统配置',
     system_user: '用户管理',
     system_role: '角色管理',
-    // system_menu: '菜单管理',
+    system_menu: '菜单管理',
+    project: '项目管理',
   },
   page: {
     login: {

@@ -131,7 +131,6 @@ public class SysUserController {
     @ApiOperation("用户自行修改密码")
     @PutMapping("/reset-password")
     public Result<String> resetPassword(@RequestParam String oldPassword, @RequestParam String newPassword, HttpServletRequest request) {
-        // 🌟 终极防空指针大法：直接用 currentUsername 拿 ID
         String currentUsername = (String) request.getAttribute("currentUsername");
         if (currentUsername == null) {
             return Result.error(401, "未能获取当前登录状态");
@@ -140,5 +139,11 @@ public class SysUserController {
         
         userService.resetPassword(user.getId(), oldPassword, newPassword);
         return Result.success("修改成功");
+    }
+
+    @ApiOperation("获取所有用户列表(无分页，用于下拉框)")
+    @GetMapping("/all")
+    public Result<List<SysUser>> getAllUsers() {
+        return Result.success(userService.listAll());
     }
 }
